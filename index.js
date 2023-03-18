@@ -3,7 +3,7 @@ const app = express();
 const cors = require('cors');
 const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 5000;
-const { MongoClient, ServerApiVersion } = require('mongodb');
+const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
 app.use(cors());
 app.use(express.json())
@@ -36,7 +36,8 @@ const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology:
 async function run() {
     try {
         const userCollection = client.db('heavenlyCapture').collection('users');
-        const allServiceCollection = client.db('heavenlyCapture').collection('allServices')
+        const allServiceCollection = client.db('heavenlyCapture').collection('allServices');
+        const reviewCollection = client.db('heavenlyCapture').collection('reviews')
 
         app.get('/jwt', async (req, res) => {
             const email = req.query.email;
@@ -64,6 +65,43 @@ async function run() {
             const query = { serviceName: category };
             const result = await allServiceCollection.find(query).toArray();
             res.send(result);
+        })
+        app.get('/service/:id', async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const query = { _id: new ObjectId(id) }
+            const result = await allServiceCollection.findOne(query);
+            res.send(result)
+        })
+
+        app.post('/reviews', async (req, res) => {
+            const review = req.body;
+            const result = await reviewCollection.insertOne(review);
+            res.send(result);
+        })
+        app.get('/reviews/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { serviceId: id };
+            const reviews = await reviewCollection.find(filter).toArray();
+            res.send(reviews)
+        })
+        app.delete('/review/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await reviewCollection.deleteOne(query)
+            res.send(result)
+        })
+        app.put('/review/:id', async (req, res) => {
+            const id = req.params.id;
+            const updateReview = req.body;
+            const filter = { _id: new ObjectId(id) }
+            const updateDoc = {
+                $set: {
+                    feedback: updateReview.feedback
+                }
+            }
+            const result = await reviewCollection.updateOne(filter, updateDoc)
+            res.send(result)
         })
     }
     catch { }
