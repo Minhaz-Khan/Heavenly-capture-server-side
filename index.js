@@ -5,9 +5,20 @@ const jwt = require('jsonwebtoken');
 const port = process.env.PORT || 5000;
 const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 
+
+const http = require('http')
+const socketIO = require("socket.io");
+
 app.use(cors());
 app.use(express.json())
 require('dotenv').config()
+
+const httpServer = http.createServer(app)
+const io = socketIO(httpServer)
+
+io.on("connection", () => {
+    console.log('new user conneted');
+})
 
 const verifyJWT = (req, res, next) => {
     const authHeaders = req.headers.authorization
@@ -27,11 +38,7 @@ const verifyJWT = (req, res, next) => {
 
 }
 
-// heavenlyCapture
-// VPZV6QuIUxeob83E
-
 const uri = `mongodb+srv://${process.env.DB_USER}:${process.env.DB_PASSWORD}@cluster0.drtwsrz.mongodb.net/?retryWrites=true&w=majority`;
-console.log(uri);
 const client = new MongoClient(uri, { useNewUrlParser: true, useUnifiedTopology: true, serverApi: ServerApiVersion.v1 });
 async function run() {
     try {
@@ -68,7 +75,6 @@ async function run() {
         })
         app.get('/service/:id', async (req, res) => {
             const id = req.params.id;
-            console.log(id);
             const query = { _id: new ObjectId(id) }
             const result = await allServiceCollection.findOne(query);
             res.send(result)
@@ -113,6 +119,6 @@ run().catch(console.dir)
 app.get('/', (req, res) => {
     res.send('this heavenly capture server is running')
 })
-app.listen(port, () => {
+httpServer.listen(port, () => {
     console.log(`the server is running on port ${port}`);
 })
