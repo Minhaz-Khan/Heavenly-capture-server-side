@@ -9,6 +9,8 @@ const { MongoClient, ServerApiVersion, ObjectId } = require('mongodb');
 const http = require('http')
 const socketIO = require("socket.io");
 
+const users = [{}]
+
 app.use(cors());
 app.use(express.json())
 require('dotenv').config()
@@ -16,8 +18,23 @@ require('dotenv').config()
 const httpServer = http.createServer(app)
 const io = socketIO(httpServer)
 
-io.on("connection", () => {
-    console.log('new user conneted');
+io.on("connection", (socket) => {
+    socket.on('newUser', (data) => {
+        users[socket.id] = data
+        // console.log(data, 'has joined');
+        socket.emit('welcome', { user: 'admin', message: 'welcome to the chat' })
+        socket.broadcast.emit('userJoined', { user: 'Admin', message: `${users[socket.id]} has joined` })
+    })
+
+    socket.on('message', ({ message, id }) => {
+        io.emit('sendMessage', { user: users[id], message, id })
+    })
+
+    socket.on("disconnect", () => {
+        console.log('user left');
+        socket.broadcast.emit('leave', { user: 'Admin', message: `${users[socket.id]} has been left` })
+    });
+
 })
 
 const verifyJWT = (req, res, next) => {
