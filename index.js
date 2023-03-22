@@ -61,7 +61,8 @@ async function run() {
     try {
         const userCollection = client.db('heavenlyCapture').collection('users');
         const allServiceCollection = client.db('heavenlyCapture').collection('allServices');
-        const reviewCollection = client.db('heavenlyCapture').collection('reviews')
+        const reviewCollection = client.db('heavenlyCapture').collection('reviews');
+        const bookingCollection = client.db('heavenlyCapture').collection('bookings')
 
         app.get('/jwt', async (req, res) => {
             const email = req.query.email;
@@ -126,6 +127,44 @@ async function run() {
             const result = await reviewCollection.updateOne(filter, updateDoc)
             res.send(result)
         })
+        app.get('/userType', async (req, res) => {
+            const userEmail = req.query.email;
+            const filter = { email: userEmail }
+            const user = await userCollection.findOne(filter)
+            res.send({ userType: user.userType })
+        })
+
+        app.post('/booking', verifyJWT, async (req, res) => {
+            const bookingInfo = req.body;
+            const email = bookingInfo.buyerEmail;
+            const query = { buyerEmail: email };
+            const allBookings = await bookingCollection.find(query).toArray();
+            const isBooked = allBookings.find(booking => booking.bookedProductId === bookingInfo.bookedProductId);
+
+            if (isBooked) {
+                return res.send({ message: 'alreay booked' })
+            }
+            const result = await bookingCollection.insertOne(bookingInfo);
+            res.send(result)
+        })
+        app.delete('/booking/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            console.log(id);
+            const query = { _id: new ObjectId(id) }
+            const result = await bookingCollection.deleteOne(query);
+            res.send(result)
+        })
+        app.get('/mybooking', verifyJWT, async (req, res) => {
+            const email = req.query.email;
+            const decodedEmail = req.decoded.email;
+            const query = { buyerEmail: email }
+            if (email === decodedEmail) {
+                const result = await bookingCollection.find(query).toArray()
+                return res.send(result)
+            }
+            res.status(403).send('forbidden access')
+        })
+
     }
     catch { }
 
