@@ -166,6 +166,42 @@ async function run() {
             res.status(403).send('forbidden access')
         })
 
+        app.get('/relativeService', verifyJWT, async (req, res) => {
+            const email = req.query.email;
+            const filter = { sellerEmail: email }
+            const result = await allServiceCollection.find(filter).toArray();
+            res.send(result)
+        })
+
+        app.post('/addProduct', verifyJWT, async (req, res) => {
+            const email = req.query.email;
+            const decodedEmail = req.decoded.email;
+            const product = req.body;
+            if (email === decodedEmail) {
+                const result = await allServiceCollection.insertOne(product);
+                return res.send(result)
+            }
+            res.status(403).send({ message: 'forbidden access' })
+
+        })
+        app.get('/myProduct', verifyJWT, async (req, res) => {
+            const email = req.query.email;
+            const decodedEmail = req.decoded.email;
+            const query = { sellerEmail: email };
+            if (email === decodedEmail) {
+                const result = await allServiceCollection.find(query).toArray();
+                return res.send(result);
+            }
+            res.status(403).send('forbidden access')
+        })
+
+        app.delete('/myProduct/:id', verifyJWT, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await allServiceCollection.deleteOne(query);
+            res.send(result)
+        })
+
 
 
 
